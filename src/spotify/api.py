@@ -32,7 +32,12 @@ def _handle_response(resp):
         except Exception:
             msg = resp.text
         raise SpotifyAPIError(resp.status_code, msg)
-    return resp.json()
+    if not resp.text or not resp.text.strip():
+        return None
+    try:
+        return resp.json()
+    except Exception:
+        return None
 
 
 # --- Playback ---

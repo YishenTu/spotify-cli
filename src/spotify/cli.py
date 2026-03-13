@@ -4,7 +4,7 @@ import json as json_mod
 
 import click
 
-from spotify import api, auth
+from spotify import api, auth, server
 from spotify.api import SpotifyAPIError
 
 
@@ -460,6 +460,16 @@ def shuffle(state):
 
     api.set_shuffle(state == "on")
     click.echo(f"Shuffle: {state}.")
+
+
+# --- serve ---
+
+@cli.command()
+@click.option("--host", default="0.0.0.0", help="Bind address")
+@click.option("--port", default=server.DEFAULT_PORT, type=int, help="Port")
+def serve(host, port):
+    """Start HTTP server for remote control (e.g. CarPlay)."""
+    server.run_server(host=host, port=port)
 
 
 # --- repeat ---

@@ -128,6 +128,47 @@ The agent calls the CLI via `uv run --directory ~/repos/spotify-cli spotify <com
 - **Library** — "like this song"
 - **Composite** — "recommend 5 funk songs, create a playlist, and play it on my MacBook"
 
+## Remote Server
+
+Built-in HTTP server for remote Spotify control — designed for iOS Shortcuts, CarPlay auto-play, or any HTTP client.
+
+### Start
+
+```bash
+spotify serve                         # Default: 0.0.0.0:19743
+spotify serve --port 8080
+```
+
+### Run as a persistent service (macOS)
+
+Create a launchd plist at `~/Library/LaunchAgents/com.spotify-carplay.server.plist` that runs `.venv/bin/python serve.py --port 19743`, then load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.spotify-carplay.server.plist
+```
+
+### Endpoints
+
+All endpoints except `/health` require `Authorization: Bearer <token>` header. The token is auto-generated on first run and stored in `~/.config/spotify-cli/server.json`.
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Health check (no auth) |
+| `GET /play` | Resume last playback, shuffle on |
+| `GET /play?playlist=spotify:playlist:XXX` | Play a specific playlist |
+| `GET /play?device=iPhone` | Target a device by name |
+| `GET /play?shuffle=false` | Play without shuffle |
+| `GET /pause` | Pause playback |
+| `GET /devices` | List available devices |
+
+The `/play` endpoint includes a retry mechanism (3 attempts, 3s apart) to wait for devices that are still waking up — useful when an iOS Shortcut opens Spotify right before calling the API.
+
+### iOS Shortcut (CarPlay auto-play)
+
+1. **Automation trigger**: CarPlay → Connected → Run Immediately
+2. **Action 1**: Open URL → `spotify:`
+3. **Action 2**: Get Contents of URL → `http://<tailscale-ip>:19743/play` with header `Authorization: Bearer <token>`
+
 ## Development
 
 ```bash
@@ -143,7 +184,9 @@ spotify-cli/
 │   ├── cli.py        # Click CLI commands
 │   ├── api.py        # Spotify Web API client
 │   ├── auth.py       # OAuth flow + token management
+│   ├── server.py     # HTTP server for remote control
 │   └── config.py     # Config file helpers
+├── serve.py          # Standalone entry point for launchd
 ├── tests/
 ├── skills/spotify/
 │   └── SKILL.md      # OpenClaw agent skill
