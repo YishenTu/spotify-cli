@@ -130,11 +130,52 @@ def transfer_playback(device_id):
     return _handle_response(resp)
 
 
+def seek_playback(position_ms):
+    resp = requests.put(
+        f"{BASE_URL}/me/player/seek",
+        headers=_headers(),
+        params={"position_ms": position_ms},
+    )
+    return _handle_response(resp)
+
+
 def add_to_queue(uri):
     resp = requests.post(
         f"{BASE_URL}/me/player/queue",
         headers=_headers(),
         params={"uri": uri},
+    )
+    return _handle_response(resp)
+
+
+def get_queue():
+    resp = requests.get(f"{BASE_URL}/me/player/queue", headers=_headers())
+    return _handle_response(resp)
+
+
+def get_recently_played(limit=20):
+    resp = requests.get(
+        f"{BASE_URL}/me/player/recently-played",
+        headers=_headers(),
+        params={"limit": min(limit, 50)},
+    )
+    return _handle_response(resp)
+
+
+def get_top(top_type="tracks", time_range="medium_term", limit=10):
+    resp = requests.get(
+        f"{BASE_URL}/me/top/{top_type}",
+        headers=_headers(),
+        params={"time_range": time_range, "limit": limit},
+    )
+    return _handle_response(resp)
+
+
+def get_recommendations(seed_tracks, limit=10):
+    resp = requests.get(
+        f"{BASE_URL}/recommendations",
+        headers=_headers(),
+        params={"seed_tracks": ",".join(seed_tracks), "limit": limit},
     )
     return _handle_response(resp)
 
@@ -242,6 +283,35 @@ def unfollow_playlist(playlist_id):
     resp = requests.delete(
         f"{BASE_URL}/playlists/{playlist_id}/followers",
         headers=_headers(),
+    )
+    return _handle_response(resp)
+
+
+def update_playlist(playlist_id, name=None, description=None):
+    """Update playlist metadata (name, description)."""
+    body = {}
+    if name is not None:
+        body["name"] = name
+    if description is not None:
+        body["description"] = description
+    resp = requests.put(
+        f"{BASE_URL}/playlists/{playlist_id}",
+        headers=_headers(),
+        json=body,
+    )
+    return _handle_response(resp)
+
+
+def reorder_playlist_tracks(playlist_id, range_start, insert_before, range_length=1):
+    """Reorder tracks in a playlist."""
+    resp = requests.put(
+        f"{BASE_URL}/playlists/{playlist_id}/tracks",
+        headers=_headers(),
+        json={
+            "range_start": range_start,
+            "insert_before": insert_before,
+            "range_length": range_length,
+        },
     )
     return _handle_response(resp)
 

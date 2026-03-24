@@ -41,6 +41,8 @@ spotify prev
 spotify volume 60
 spotify shuffle on|off
 spotify repeat off|track|context
+spotify seek 90                       # Seek to 90 seconds
+spotify seek 1:30                     # Seek to 1 minute 30 seconds (mm:ss)
 ```
 
 ### Status
@@ -62,7 +64,40 @@ spotify search "Jamiroquai" --type artist --limit 5
 ### Queue
 
 ```bash
-spotify queue "September Earth Wind Fire"
+spotify queue "September Earth Wind Fire"     # Add to queue (shorthand)
+spotify queue add "September Earth Wind Fire" # Add to queue (explicit)
+spotify queue show                            # Show current queue
+spotify queue show --limit 5                  # Show top 5 upcoming
+spotify queue show --json                     # Machine-readable
+```
+
+### History
+
+```bash
+spotify history                       # Show last 20 played tracks
+spotify history --limit 50            # Show up to 50 tracks
+spotify history --json                # Machine-readable
+```
+
+### Top
+
+```bash
+spotify top                           # Top tracks (~6 months)
+spotify top tracks                    # Explicit type
+spotify top artists                   # Top artists
+spotify top --time-range short        # ~4 weeks
+spotify top --time-range medium       # ~6 months (default)
+spotify top --time-range long         # All time
+spotify top --limit 20                # More results
+spotify top --json                    # Machine-readable
+```
+
+### Recommendations
+
+```bash
+spotify recommend "Kate Bush"         # Recommendations seeded from a track search
+spotify recommend "Get Lucky" --limit 20
+spotify recommend "Billie Jean" --json
 ```
 
 ### Devices
@@ -77,10 +112,18 @@ spotify device "iPhone"               # Transfer playback
 ```bash
 spotify playlist list
 spotify playlist create "Swagger & Groove"
+spotify playlist create "Chill" --description "Relaxing vibes" --public
 spotify playlist add "Swagger & Groove" "Sexbomb" "Baby Come Back" "September"
 spotify playlist show "Swagger & Groove"
 spotify playlist remove "Swagger & Groove" "Sexbomb"
 spotify playlist delete "Swagger & Groove" --yes
+spotify playlist rename "Old Name" "New Name"
+spotify playlist edit "My Mix" --name "Better Mix" --description "Updated"
+spotify playlist reorder "My Mix" 3 1              # Move track at pos 3 to pos 1
+spotify playlist play "Swagger & Groove"           # Play entire playlist
+spotify playlist dedupe "My Mix"                   # Remove duplicate tracks
+spotify playlist dedupe "My Mix" --dry-run         # Preview duplicates without removing
+spotify playlist dedupe "My Mix" --json            # Machine-readable duplicate report
 ```
 
 ### Library
@@ -99,6 +142,10 @@ spotify status --json
 spotify devices --json
 spotify search "query" --json
 spotify playlist list --json
+spotify queue show --json
+spotify history --json
+spotify top --json
+spotify recommend "query" --json
 ```
 
 ## Agent Skill

@@ -105,6 +105,140 @@ class TestPlaylistShow:
         assert "not found" in result.output
 
 
+class TestPlaylistRename:
+    def test_rename_playlist(self, mocker):
+        pl = make_playlist("Old Name")
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mock_update = mocker.patch("spotify.api.update_playlist")
+
+        result = CliRunner().invoke(cli, ["playlist", "rename", "Old Name", "New Name"])
+        assert result.exit_code == 0
+        assert "New Name" in result.output
+        mock_update.assert_called_once_with("pl123", name="New Name")
+
+    def test_rename_playlist_not_found(self, mocker):
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=None)
+
+        result = CliRunner().invoke(cli, ["playlist", "rename", "Ghost Playlist", "New Name"])
+        assert result.exit_code != 0
+        assert "not found" in result.output
+
+
+class TestPlaylistEdit:
+    def test_edit_playlist(self, mocker):
+        pl = make_playlist("My Mix")
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mock_update = mocker.patch("spotify.api.update_playlist")
+
+        result = CliRunner().invoke(cli, [
+            "playlist", "edit", "My Mix",
+            "--name", "Revised Mix",
+            "--description", "Updated desc",
+        ])
+        assert result.exit_code == 0
+        mock_update.assert_called_once_with("pl123", name="Revised Mix", description="Updated desc")
+
+    def test_edit_playlist_no_options(self, mocker):
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+
+        result = CliRunner().invoke(cli, ["playlist", "edit", "My Mix"])
+        assert result.exit_code != 0
+
+
+class TestPlaylistReorder:
+    def test_reorder_playlist(self, mocker):
+        pl = make_playlist("My Mix")
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mock_reorder = mocker.patch("spotify.api.reorder_playlist_tracks")
+
+        result = CliRunner().invoke(cli, ["playlist", "reorder", "My Mix", "3", "1"])
+        assert result.exit_code == 0
+        # from_pos=3 → range_start=2, to_pos=1 → insert_before=0
+        mock_reorder.assert_called_once_with("pl123", range_start=2, insert_before=0)
+        assert "My Mix" in result.output
+
+    def test_reorder_playlist_not_found(self, mocker):
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=None)
+
+        result = CliRunner().invoke(cli, ["playlist", "reorder", "Ghost", "2", "1"])
+        assert result.exit_code != 0
+        assert "not found" in result.output
+
+
+class TestPlaylistPlay:
+    def test_play_playlist(self, mocker):
+        pl = {**make_playlist("My Mix"), "uri": "spotify:playlist:pl123"}
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mock_play = mocker.patch("spotify.api.start_playback")
+
+        result = CliRunner().invoke(cli, ["playlist", "play", "My Mix"])
+        assert result.exit_code == 0
+        mock_play.assert_called_once_with(context_uri="spotify:playlist:pl123")
+        assert "My Mix" in result.output
+
+    def test_play_playlist_not_found(self, mocker):
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=None)
+
+        result = CliRunner().invoke(cli, ["playlist", "play", "Ghost Playlist"])
+        assert result.exit_code != 0
+        assert "not found" in result.output
+
+
+class TestPlaylistDedupe:
+    def test_dedupe_playlist(self, mocker):
+        pl = make_playlist("My Mix")
+        track = make_track("Duplicate Song", "Artist")
+        tracks = [
+            {"track": track},
+            {"track": make_track("Unique Song", "Artist", uri="spotify:track:xyz999", track_id="xyz999")},
+            {"track": track},  # duplicate
+        ]
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mocker.patch("spotify.api.get_playlist_tracks", return_value=tracks)
+        mock_remove = mocker.patch("spotify.api.remove_tracks_from_playlist")
+
+        result = CliRunner().invoke(cli, ["playlist", "dedupe", "My Mix"])
+        assert result.exit_code == 0
+        assert "1 duplicate" in result.output
+        mock_remove.assert_called_once()
+
+    def test_dedupe_dry_run(self, mocker):
+        pl = make_playlist("My Mix")
+        track = make_track("Duplicate Song", "Artist")
+        tracks = [{"track": track}, {"track": track}]
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mocker.patch("spotify.api.get_playlist_tracks", return_value=tracks)
+        mock_remove = mocker.patch("spotify.api.remove_tracks_from_playlist")
+
+        result = CliRunner().invoke(cli, ["playlist", "dedupe", "My Mix", "--dry-run"])
+        assert result.exit_code == 0
+        assert "dry-run" in result.output.lower()
+        mock_remove.assert_not_called()
+
+    def test_dedupe_no_duplicates(self, mocker):
+        pl = make_playlist("My Mix")
+        tracks = [
+            {"track": make_track("Song A", "Artist A", track_id="id1")},
+            {"track": make_track("Song B", "Artist B", track_id="id2")},
+        ]
+        mocker.patch("spotify.api.get_valid_token", return_value="tok")
+        mocker.patch("spotify.api.resolve_playlist", return_value=pl)
+        mocker.patch("spotify.api.get_playlist_tracks", return_value=tracks)
+
+        result = CliRunner().invoke(cli, ["playlist", "dedupe", "My Mix"])
+        assert result.exit_code == 0
+        assert "No duplicates" in result.output
+
+
 class TestResolvePlaylist:
     def test_resolve_by_exact_name(self, mocker):
         from spotify.api import resolve_playlist
