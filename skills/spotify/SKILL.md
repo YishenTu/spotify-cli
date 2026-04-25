@@ -206,7 +206,8 @@ spotify playlist dedupe "My Mix"             # Remove them
 
 ## Errors & Gotchas
 
-- **`Error: Insufficient client scope`** — the stored OAuth token is missing a required scope. The fix is **not just re-auth**: first verify the scope is declared in `src/spotify/auth.py` (`SCOPES` list), add it if missing, then run `spotify auth` again. Reference: `history` needs `user-read-recently-played`; `top` needs `user-top-read`.
+- **`Error: Insufficient client scope`** — the stored OAuth token is missing a required scope. The fix is **not just re-auth**: (a) verify the scope is declared in `src/spotify/auth.py` (`SCOPES` list), add it if missing; (b) **revoke the app at https://www.spotify.com/account/apps/** so Spotify can't silently reuse prior consent; (c) run `spotify auth` again. Skipping (b) is a common trap — without `show_dialog=true` in auth params, Spotify reuses the old grant and the new scopes never get attached.
+- **`Error: Resource not found` right after switching device** — happens when `play` runs immediately after `spotify device "<name>"`, especially for Bluetooth speakers. The device hasn't fully registered as active yet. Wait ~2 seconds (or re-check `spotify devices` until the target shows the active marker `●`), then retry.
 - **`Error: Nothing is currently playing.`** — `status`, `like`, `unlike`, `seek`, `queue add` (and friends) all need an active playback session. Start playback in any Spotify client first.
 - **No active device** — `play` and friends will fail. Run `spotify devices`; if empty, open Spotify somewhere.
 - **Auth subcommand is just `spotify auth`** — there is no `auth status`. To inspect token state, look at `~/.config/spotify-cli/config.json` (contains `access_token`, `refresh_token`, `token_expiry`).
