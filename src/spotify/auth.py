@@ -49,6 +49,10 @@ def get_auth_url(client_id):
         "response_type": "code",
         "redirect_uri": REDIRECT_URI,
         "scope": SCOPES,
+        # Force the consent screen so re-running `auth` after a SCOPES change
+        # actually re-prompts and grants the new scopes. Without this, Spotify
+        # silently reuses the prior grant and any newly added scope is dropped.
+        "show_dialog": "true",
     }
     return f"{AUTH_URL}?{urlencode(params)}"
 
