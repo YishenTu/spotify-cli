@@ -19,6 +19,8 @@ SCOPES = " ".join([
     "playlist-modify-private",
     "user-library-modify",
     "user-library-read",
+    "user-read-recently-played",
+    "user-top-read",
 ])
 
 REDIRECT_URI = "http://127.0.0.1:8888/callback"

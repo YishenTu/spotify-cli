@@ -203,3 +203,11 @@ spotify playlist dedupe "My Mix"             # Remove them
 - `spotify top` defaults to tracks, medium time range (~6 months), limit 10.
 - `spotify recommend` finds a seed track by search, then fetches Spotify recommendations from it.
 - `spotify playlist reorder` uses 1-indexed positions: `reorder "My Mix" FROM TO` moves the track at position FROM to before position TO.
+
+## Errors & Gotchas
+
+- **`Error: Insufficient client scope`** — the stored OAuth token is missing a required scope. The fix is **not just re-auth**: first verify the scope is declared in `src/spotify/auth.py` (`SCOPES` list), add it if missing, then run `spotify auth` again. Reference: `history` needs `user-read-recently-played`; `top` needs `user-top-read`.
+- **`Error: Nothing is currently playing.`** — `status`, `like`, `unlike`, `seek`, `queue add` (and friends) all need an active playback session. Start playback in any Spotify client first.
+- **No active device** — `play` and friends will fail. Run `spotify devices`; if empty, open Spotify somewhere.
+- **Auth subcommand is just `spotify auth`** — there is no `auth status`. To inspect token state, look at `~/.config/spotify-cli/config.json` (contains `access_token`, `refresh_token`, `token_expiry`).
+- **Premium required** for any playback control; search and read commands work on free accounts.
