@@ -57,17 +57,39 @@ def get_or_create_token():
 
 # --- Helpers using existing spotify api/auth modules ---
 
+DEFAULT_DEVICE_NAME = "iphone"
+
+
 def _find_device(name=None):
-    """Find a device by name. Returns (device_id, devices_list)."""
+    """Find a device by name. Returns (device_id, devices_list).
+
+    Selection order:
+      1. Explicit `name` substring match.
+      2. Default preference (iPhone) substring match.
+      3. Currently active device.
+      4. First device returned by the API.
+    """
     data = api.get_devices()
     devices = data.get("devices", [])
     if not devices:
         return None, devices
-    if name:
-        name_lower = name.lower()
+
+    def _match(substr):
+        s = substr.lower()
         for d in devices:
-            if name_lower in d["name"].lower():
-                return d["id"], devices
+            if s in d["name"].lower():
+                return d["id"]
+        return None
+
+    if name:
+        hit = _match(name)
+        if hit:
+            return hit, devices
+
+    hit = _match(DEFAULT_DEVICE_NAME)
+    if hit:
+        return hit, devices
+
     for d in devices:
         if d["is_active"]:
             return d["id"], devices
